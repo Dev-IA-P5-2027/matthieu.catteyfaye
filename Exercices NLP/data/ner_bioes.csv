@@ -1,0 +1,101 @@
+sentence,token,tag
+Apple launches new iPhone in California,Apple,S-ORG
+Apple launches new iPhone in California,launches,O
+Apple launches new iPhone in California,new,O
+Apple launches new iPhone in California,iPhone,O
+Apple launches new iPhone in California,in,O
+Apple launches new iPhone in California,California,S-LOC
+Elon Musk founded SpaceX,Elon,B-PER
+Elon Musk founded SpaceX,Musk,E-PER
+Elon Musk founded SpaceX,founded,O
+Elon Musk founded SpaceX,SpaceX,S-ORG
+Google opens office in London,Google,S-ORG
+Google opens office in London,opens,O
+Google opens office in London,office,O
+Google opens office in London,in,O
+Google opens office in London,London,S-LOC
+Microsoft hires engineers in Berlin,Microsoft,S-ORG
+Microsoft hires engineers in Berlin,hires,O
+Microsoft hires engineers in Berlin,engineers,O
+Microsoft hires engineers in Berlin,in,O
+Microsoft hires engineers in Berlin,Berlin,S-LOC
+Paris is beautiful in summer,Paris,S-LOC
+Paris is beautiful in summer,is,O
+Paris is beautiful in summer,beautiful,O
+Paris is beautiful in summer,in,O
+Paris is beautiful in summer,summer,O
+Barack Obama visited Germany,Barack,B-PER
+Barack Obama visited Germany,Obama,E-PER
+Barack Obama visited Germany,visited,O
+Barack Obama visited Germany,Germany,S-LOC
+Tesla builds factories in Texas,Tesla,S-ORG
+Tesla builds factories in Texas,builds,O
+Tesla builds factories in Texas,factories,O
+Tesla builds factories in Texas,in,O
+Tesla builds factories in Texas,Texas,S-LOC
+Amazon expands in Europe,Amazon,S-ORG
+Amazon expands in Europe,expands,O
+Amazon expands in Europe,in,O
+Amazon expands in Europe,Europe,S-LOC
+Tim Cook speaks at Apple event,Tim,B-PER
+Tim Cook speaks at Apple event,Cook,E-PER
+Tim Cook speaks at Apple event,speaks,O
+Tim Cook speaks at Apple event,at,O
+Tim Cook speaks at Apple event,Apple,S-ORG
+London hosts tech conference,London,S-LOC
+London hosts tech conference,hosts,O
+London hosts tech conference,tech,O
+London hosts tech conference,conference,O
+Facebook rebrands to Meta,Facebook,S-ORG
+Facebook rebrands to Meta,rebrands,O
+Facebook rebrands to Meta,to,O
+Facebook rebrands to Meta,Meta,S-ORG
+Sundar Pichai leads Google,Sundar,B-PER
+Sundar Pichai leads Google,Pichai,E-PER
+Sundar Pichai leads Google,leads,O
+Sundar Pichai leads Google,Google,S-ORG
+Berlin becomes startup hub,Berlin,S-LOC
+Berlin becomes startup hub,becomes,O
+Berlin becomes startup hub,startup,O
+Berlin becomes startup hub,hub,O
+Netflix produces new series,Netflix,S-ORG
+Netflix produces new series,produces,O
+Netflix produces new series,new,O
+Netflix produces new series,series,O
+Mark Zuckerberg visits Paris,Mark,B-PER
+Mark Zuckerberg visits Paris,Zuckerberg,E-PER
+Mark Zuckerberg visits Paris,visits,O
+Mark Zuckerberg visits Paris,Paris,S-LOC
+Samsung releases new phone,Samsung,S-ORG
+Samsung releases new phone,releases,O
+Samsung releases new phone,new,O
+Samsung releases new phone,phone,O
+India wins cricket match,India,S-LOC
+India wins cricket match,wins,O
+India wins cricket match,cricket,O
+India wins cricket match,match,O
+Toyota expands factory in Japan,Toyota,S-ORG
+Toyota expands factory in Japan,expands,O
+Toyota expands factory in Japan,factory,O
+Toyota expands factory in Japan,in,O
+Toyota expands factory in Japan,Japan,S-LOC
+Angela Merkel meets leaders in Brussels,Angela,B-PER
+Angela Merkel meets leaders in Brussels,Merkel,E-PER
+Angela Merkel meets leaders in Brussels,meets,O
+Angela Merkel meets leaders in Brussels,leaders,O
+Angela Merkel meets leaders in Brussels,in,O
+Angela Merkel meets leaders in Brussels,Brussels,S-LOC
+OpenAI releases new model,OpenAI,S-ORG
+OpenAI releases new model,releases,O
+OpenAI releases new model,new,O
+OpenAI releases new model,model,O
+Toronto hosts sports event,Toronto,S-LOC
+Toronto hosts sports event,hosts,O
+Toronto hosts sports event,sports,O
+Toronto hosts sports event,event,O
+Bill Gates invests in health tech,Bill,B-PER
+Bill Gates invests in health tech,Gates,E-PER
+Bill Gates invests in health tech,invests,O
+Bill Gates invests in health tech,in,O
+Bill Gates invests in health tech,health,O
+Bill Gates invests in health tech,tech,O
