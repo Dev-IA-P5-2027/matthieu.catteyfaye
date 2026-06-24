@@ -7,7 +7,7 @@ class Settings:
 
         self.HF_TOKEN = os.getenv("HF_TOKEN")
         self.EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
-        self.LLM_REPO_ID = "mistralai/Mistral-7B-Instruct-v0.3" 
+        self.LLM_REPO_ID = "google/flan-t5-large"
         self.QDRANT_PATH = "./qdrant_db"
         self.COLLECTION_NAME = "my_pdf_documents"
 
