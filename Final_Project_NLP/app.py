@@ -1,7 +1,9 @@
 import gradio as gr
 import requests
 
+
 API_URL = "http://127.0.0.1:8000/api/chat"
+
 
 def predict(message, history):
     """Fonction Gradio qui fait la passerelle avec l'API FastAPI."""

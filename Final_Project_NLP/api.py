@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 app_state = {"rag_chain": None}
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Initialisation du système RAG au démarrage de FastAPI...")

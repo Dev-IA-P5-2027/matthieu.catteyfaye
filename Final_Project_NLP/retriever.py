@@ -4,7 +4,9 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from huggingface_hub import InferenceClient
+
 from config import config
+
 
 def format_docs(docs):
     """Combine les textes des documents récupérés en une seule chaîne."""

@@ -5,6 +5,7 @@ from langchain_qdrant import QdrantVectorStore
 
 from config import config 
 
+
 def ingest_docs(docs_dir: str):
     print("Chargement des documents...")
     loader = DirectoryLoader(docs_dir, glob="**/*.pdf", loader_cls=PyPDFLoader)
