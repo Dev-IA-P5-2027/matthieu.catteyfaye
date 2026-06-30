@@ -12,11 +12,9 @@ class RAGEngine:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Utilisation du périphérique : {self.device}")
 
-        # Chargement de spaCy pour un découpage propre par phrases
         print("Chargement de spaCy (en_core_web_sm)...")
         self.nlp = spacy.load("en_core_web_sm")
 
-        # 1. Initialisation de ChromaDB
         self.chroma_client = chromadb.Client()
         self.collection_name = "pdf_documents"
         
@@ -26,19 +24,14 @@ class RAGEngine:
             pass
         self.collection = self.chroma_client.create_collection(name=self.collection_name)
         
-        # 2. Chargement du modèle d'embedding (Hugging Face)
         print("Chargement du modèle d'embedding (all-mpnet-base-v2)...")
         self.embedding_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2', device=self.device)
-        
-        # 3. Configuration du modèle de génération via Ollama (local)
-        # Pré-requis : avoir Ollama installé et lancé (ollama serve), et le modèle déjà
-        # téléchargé une fois avec : ollama pull llama3
+
         self.ollama_url = "http://localhost:11434/api/generate"
         self.ollama_model = "llama3"
         print(f"Génération configurée pour utiliser Ollama (modèle : {self.ollama_model})...")
         self._check_ollama()
         
-        # 4. Indexation AUTOMATIQUE du dossier data_business au démarrage
         print(f"Indexation automatique des fichiers du dossier : '{directory_path}'...")
         self.index_directory(directory_path)
         print("RAG Engine prêt et base vectorielle alimentée !")
@@ -104,13 +97,11 @@ class RAGEngine:
                 chunks = self.chunk_text(text)
                 
                 for index, chunk in enumerate(chunks):
-                    # Génération d'un ID unique similaire à votre exemple
                     doc_id = f"{filename}:part{index+1}"
                     all_chunks.append(chunk)
                     all_ids.append(doc_id)
                     all_metadatas.append({"source": filename, "chunk_id": index})
 
-        # Injection par lot (Batch) dans ChromaDB si des fragments ont été trouvés
         if all_chunks:
             print(f"Calcul des embeddings et stockage de {len(all_chunks)} fragments...")
             embeddings = self.embedding_model.encode(all_chunks).tolist()
@@ -142,7 +133,6 @@ class RAGEngine:
 
         context = "\n---\n".join(retrieved_docs)
         
-        # Consigne stricte en anglais (mieux comprise par Flan-T5) pour forcer une réponse en français
         prompt = (
             f"Instruction: Answer the question in English based only on the provided context. "
             f"If the answer cannot be found in the context, say 'I don't know'.\n\n"

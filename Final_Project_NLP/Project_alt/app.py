@@ -1,7 +1,6 @@
 import gradio as gr
 from rag_engine import RAGEngine
 
-# Initialisation du moteur au démarrage (va scanner et indexer le dossier automatiquement)
 rag = RAGEngine(directory_path="data_business")
 
 def ask_rag(question):
