@@ -1,100 +1,134 @@
 import os
 import torch
+import requests
 from pypdf import PdfReader
 import chromadb
+import spacy
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModelForText2TextGeneration, pipeline
 
 class RAGEngine:
-    def __init__(self):
+    def __init__(self, directory_path="data_business"):
         print("Initialisation du RAG Engine...")
-        # 1. Initialisation du client de base de données vectorielle locale
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"Utilisation du périphérique : {self.device}")
+
+        # Chargement de spaCy pour un découpage propre par phrases
+        print("Chargement de spaCy (en_core_web_sm)...")
+        self.nlp = spacy.load("en_core_web_sm")
+
+        # 1. Initialisation de ChromaDB
         self.chroma_client = chromadb.Client()
         self.collection_name = "pdf_documents"
         
-        # Supprime la collection si elle existe déjà pour éviter les mélanges
         try:
             self.chroma_client.delete_collection(name=self.collection_name)
         except Exception:
             pass
         self.collection = self.chroma_client.create_collection(name=self.collection_name)
         
-        # 2. Chargement du modèle d'embedding imposé par l'énoncé
+        # 2. Chargement du modèle d'embedding (Hugging Face)
         print("Chargement du modèle d'embedding (all-mpnet-base-v2)...")
-        self.embedding_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+        self.embedding_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2', device=self.device)
         
-        # 3. Chargement du modèle de génération imposé par l'énoncé
-        print("Chargement du modèle de génération (flan-t5-large)...")
-        self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
-        self.llm_model = AutoModelForText2TextGeneration.from_pretrained("google/flan-t5-large")
+        # 3. Configuration du modèle de génération via Ollama (local)
+        # Pré-requis : avoir Ollama installé et lancé (ollama serve), et le modèle déjà
+        # téléchargé une fois avec : ollama pull llama3
+        self.ollama_url = "http://localhost:11434/api/generate"
+        self.ollama_model = "llama3"
+        print(f"Génération configurée pour utiliser Ollama (modèle : {self.ollama_model})...")
+        self._check_ollama()
         
-        # Création du pipeline de génération de texte
-        self.generation_pipeline = pipeline(
-            "text2text-generation",
-            model=self.llm_model,
-            tokenizer=self.tokenizer,
-            max_length=256,
-            temperature=0.2,
-            do_sample=True
-        )
-        print("RAG Engine prêt !")
+        # 4. Indexation AUTOMATIQUE du dossier data_business au démarrage
+        print(f"Indexation automatique des fichiers du dossier : '{directory_path}'...")
+        self.index_directory(directory_path)
+        print("RAG Engine prêt et base vectorielle alimentée !")
 
-    def process_pdf(self, pdf_path: str, chunk_size: int = 800, overlap: int = 150):
-        """Extrait le texte d'un PDF, le découpe en morceaux et le stocke dans ChromaDB."""
-        if not pdf_path:
-            return "Aucun fichier fourni."
-        
-        print(f"Traitement du fichier : {pdf_path}")
-        reader = PdfReader(pdf_path)
-        full_text = ""
-        
-        # Extraction du texte page par page
-        for page in reader.pages:
-            text = page.extract_text()
-            if text:
-                full_text += text + "\n"
-        
-        if not full_text.strip():
-            return "Le PDF semble vide ou illisible."
-
-        # Découpage du texte en morceaux (Chunking avec overlap)
-        chunks = []
-        words = full_text.split()
-        
-        # Conversion du découpage en caractères approximatifs pour correspondre au chunk_size
-        step = chunk_size - overlap
-        for i in range(0, len(full_text), step):
-            chunk = full_text[i:i + chunk_size]
-            if len(chunk.strip()) > 10:  # Éviter les morceaux vides
-                chunks.append(chunk.strip())
-
-        filename = os.path.basename(pdf_path)
-        print(f"Génération de {len(chunks)} fragments pour {filename}...")
-
-        # Génération des vecteurs d'embeddings et stockage
-        for idx, chunk in enumerate(chunks):
-            # Calcul de l'embedding du fragment
-            embedding = self.embedding_model.encode(chunk).tolist()
-            
-            # Ajout à la base ChromaDB
-            self.collection.add(
-                ids=[f"{filename}_chunk_{idx}"],
-                embeddings=[embedding],
-                documents=[chunk],
-                metadatas=[{"source": filename, "chunk_id": idx}]
+    def _check_ollama(self):
+        """Vérifie qu'Ollama tourne et que le modèle est disponible, sans bloquer le démarrage."""
+        try:
+            resp = requests.get("http://localhost:11434/api/tags", timeout=3)
+            resp.raise_for_status()
+            available = [m["name"] for m in resp.json().get("models", [])]
+            if not any(self.ollama_model in name for name in available):
+                print(
+                    f"⚠️  Attention : le modèle '{self.ollama_model}' ne semble pas installé dans Ollama. "
+                    f"Lancez : ollama pull {self.ollama_model}"
+                )
+            else:
+                print(f"✅ Ollama détecté, modèle '{self.ollama_model}' disponible.")
+        except requests.exceptions.RequestException:
+            print(
+                "⚠️  Attention : impossible de contacter Ollama sur http://localhost:11434. "
+                "Vérifiez qu'Ollama est lancé (commande : ollama serve)."
             )
-            
-        return f"Succès : Le document '{filename}' a été indexé ({len(chunks)} fragments créés)."
+
+    def pdf_to_text(self, pdf_path):
+        """Extrait le texte d'un PDF page par page."""
+        reader = PdfReader(pdf_path)
+        text = ""
+        for page in reader.pages:
+            page_text = page.extract_text() or ""
+            text += page_text + "\n\n"
+        return text
+
+    def chunk_text(self, text, max_chars=1000):
+        """Découpe le texte en morceaux basés sur les phrases de spaCy (Évite les coupures brutes)."""
+        doc = self.nlp(text)
+        chunks = []
+        current_chunk = ""
+        for sent in doc.sents:
+            if len(current_chunk) + len(sent.text) > max_chars:
+                chunks.append(current_chunk.strip())
+                current_chunk = sent.text
+            else:
+                current_chunk += " " + sent.text
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+        return chunks
+
+    def index_directory(self, directory):
+        """Parcourt le dossier, extrait, découpe et injecte dans ChromaDB."""
+        if not os.path.exists(directory):
+            print(f"Attention : Le dossier '{directory}' n'existe pas.")
+            return
+
+        all_chunks = []
+        all_ids = []
+        all_metadatas = []
+
+        for filename in os.listdir(directory):
+            if filename.endswith(".pdf"):
+                path = os.path.join(directory, filename)
+                print(f"Extraction et découpage de : {filename}...")
+                text = self.pdf_to_text(path)
+                chunks = self.chunk_text(text)
+                
+                for index, chunk in enumerate(chunks):
+                    # Génération d'un ID unique similaire à votre exemple
+                    doc_id = f"{filename}:part{index+1}"
+                    all_chunks.append(chunk)
+                    all_ids.append(doc_id)
+                    all_metadatas.append({"source": filename, "chunk_id": index})
+
+        # Injection par lot (Batch) dans ChromaDB si des fragments ont été trouvés
+        if all_chunks:
+            print(f"Calcul des embeddings et stockage de {len(all_chunks)} fragments...")
+            embeddings = self.embedding_model.encode(all_chunks).tolist()
+            self.collection.add(
+                ids=all_ids,
+                embeddings=embeddings,
+                documents=all_chunks,
+                metadatas=all_metadatas
+            )
+            print(f"Succès : {len(all_chunks)} fragments ajoutés à la base vectorielle.")
 
     def answer_question(self, question: str, n_results: int = 3) -> tuple:
-        """Recherche les documents pertinents et génère la réponse finale."""
+        """Recherche les documents pertinents et génère la réponse."""
         if not question.strip():
             return "Veuillez poser une question valide.", ""
 
-        # 1. Encoder la question de l'utilisateur
         query_embedding = self.embedding_model.encode(question).tolist()
         
-        # 2. Rechercher les morceaux les plus proches dans ChromaDB
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=n_results
@@ -104,19 +138,38 @@ class RAGEngine:
         retrieved_ids = results['ids'][0] if results['ids'] else []
         
         if not retrieved_docs:
-            return "Aucun contexte trouvé dans le document. Veuillez d'abord téléverser un PDF.", ""
+            return "Aucun contexte trouvé pour répondre à cette question.", ""
 
-        # 3. Construire le contexte pour Flan-T5
         context = "\n---\n".join(retrieved_docs)
         
-        # Prompt structuré optimisé pour les modèles de type Encoder-Decoder (Flan-T5)
-        prompt = f"Context:\n{context}\n\nQuestion: {question}\n\nAnswer based only on the context provided above:"
+        # Consigne stricte en anglais (mieux comprise par Flan-T5) pour forcer une réponse en français
+        prompt = (
+            f"Instruction: Answer the question in English based only on the provided context. "
+            f"If the answer cannot be found in the context, say 'I don't know'.\n\n"
+            f"Context:\n{context}\n\n"
+            f"Question: {question}\n\n"
+            f"Answer (in English):"
+        )
         
-        # 4. Générer la réponse
-        output = self.generation_pipeline(prompt)
-        response_text = output[0]['generated_text']
+        try:
+            response = requests.post(
+                self.ollama_url,
+                json={
+                    "model": self.ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.1},
+                },
+                timeout=120,
+            )
+            response.raise_for_status()
+            response_text = response.json().get("response", "").strip()
+        except requests.exceptions.RequestException as e:
+            response_text = (
+                "Erreur : impossible de contacter Ollama (vérifiez que 'ollama serve' "
+                f"tourne et que le modèle '{self.ollama_model}' est installé). Détail : {e}"
+            )
         
-        # Formater les métadonnées de source à afficher dans l'interface
-        sources = "\n".join([f"- Fragment extrait : {doc_id}" for doc_id in retrieved_ids])
+        sources = "\n".join([f"- {doc_id}" for doc_id in retrieved_ids])
         
         return response_text, sources
